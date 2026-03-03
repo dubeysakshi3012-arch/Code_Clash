@@ -1,0 +1,16 @@
+{
+  "name": "codeclash-socket-server",
+  "version": "1.0.0",
+  "description": "Socket.io server for CodeClash matchmaking",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "jsonwebtoken": "^9.0.2",
+    "socket.io": "^4.7.2"
+  }
+}

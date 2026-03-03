@@ -1,0 +1,86 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: codeclash_postgres
+    environment:
+      POSTGRES_USER: codeclash
+      POSTGRES_PASSWORD: codeclash_password
+      POSTGRES_DB: codeclash
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U codeclash"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    container_name: codeclash_redis
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "6379:6379"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: codeclash_backend
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://codeclash:codeclash_password@postgres:5432/codeclash
+      REDIS_URL: redis://redis:6379/0
+      CORS_ORIGINS: '["http://localhost:3000","http://127.0.0.1:3000"]'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  socket-server:
+    build:
+      context: ./socket-server
+      dockerfile: Dockerfile
+    container_name: codeclash_socket
+    env_file:
+      - .env
+    environment:
+      API_URL: http://backend:8000
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      SOCKET_SERVER_SECRET: ${SOCKET_SERVER_SECRET}
+      CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+    depends_on:
+      - backend
+    ports:
+      - "3001:3001"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+        NEXT_PUBLIC_SOCKET_URL: http://localhost:3001
+    container_name: codeclash_frontend
+    depends_on:
+      - backend
+      - socket-server
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres_data:
+  redis_data:

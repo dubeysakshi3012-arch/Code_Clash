@@ -1,0 +1,21 @@
+# Env (keep example only)
+.env
+!.env.docker.example
+
+# Python
+backend/venv/
+**/__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+
+# Node
+node_modules/
+.next/
+out/
+build/
+
+# Misc
+.DS_Store
+*.log
+.vercel
