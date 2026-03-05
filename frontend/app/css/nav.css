@@ -1,0 +1,88 @@
+.landing-nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: min(1100px, 92vw);
+  margin: 0 auto;
+  padding: 0.95rem 0;
+  background: linear-gradient(to bottom, rgba(5, 5, 5, 0.95), rgba(5, 5, 5, 0.4), transparent);
+  backdrop-filter: blur(7px);
+}
+
+.brand {
+  color: var(--brand);
+  text-decoration: none;
+  font-family: var(--font-arcade), sans-serif;
+  letter-spacing: 0.11em;
+}
+
+.nav-links {
+  display: none;
+}
+
+.nav-link {
+  color: var(--ink-dim);
+  text-decoration: none;
+  font-family: var(--font-terminal), monospace;
+  letter-spacing: 0.18em;
+  font-size: 0.73rem;
+  transition: color 0.2s ease;
+}
+
+.nav-link:hover {
+  color: var(--accent);
+}
+
+.cursor-dot,
+.cursor-ring {
+  position: fixed;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  z-index: 70;
+  opacity: 0;
+}
+
+.cursor-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  margin-left: -3px;
+  margin-top: -3px;
+}
+
+.cursor-ring {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 209, 102, 0.6);
+  margin-left: -14px;
+  margin-top: -14px;
+  transition: width 0.2s ease, height 0.2s ease, margin 0.2s ease, border-color 0.2s ease;
+}
+
+body.custom-cursor,
+body.custom-cursor * {
+  cursor: none !important;
+}
+
+body.cursor-active .cursor-ring {
+  width: 44px;
+  height: 44px;
+  margin-left: -22px;
+  margin-top: -22px;
+  border-color: rgba(255, 90, 31, 0.95);
+}
+
+@media (min-width: 900px) {
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+}

@@ -2,6 +2,8 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: codeclash_postgres
+    networks:
+      - codeclash_net
     environment:
       POSTGRES_USER: codeclash
       POSTGRES_PASSWORD: codeclash_password
@@ -14,11 +16,13 @@ services:
       timeout: 5s
       retries: 5
     ports:
-      - "5432:5432"
+      - "5433:5432"
 
   redis:
     image: redis:7-alpine
     container_name: codeclash_redis
+    networks:
+      - codeclash_net
     volumes:
       - redis_data:/data
     healthcheck:
@@ -34,11 +38,16 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: codeclash_backend
+    networks:
+      - codeclash_net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql://codeclash:codeclash_password@postgres:5432/codeclash
-      REDIS_URL: redis://redis:6379/0
+      # host.docker.internal = host machine (works on Docker Desktop Windows/Mac; avoids DNS "postgres" resolution issues)
+      DATABASE_URL: postgresql://codeclash:codeclash_password@host.docker.internal:5433/codeclash
+      REDIS_URL: redis://host.docker.internal:6379/0
       CORS_ORIGINS: '["http://localhost:3000","http://127.0.0.1:3000"]'
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -55,6 +64,8 @@ services:
       context: ./socket-server
       dockerfile: Dockerfile
     container_name: codeclash_socket
+    networks:
+      - codeclash_net
     env_file:
       - .env
     environment:
@@ -74,12 +85,18 @@ services:
       args:
         NEXT_PUBLIC_API_URL: http://localhost:8000
         NEXT_PUBLIC_SOCKET_URL: http://localhost:3001
+    networks:
+      - codeclash_net
     container_name: codeclash_frontend
     depends_on:
       - backend
       - socket-server
     ports:
       - "3000:3000"
+
+networks:
+  codeclash_net:
+    driver: bridge
 
 volumes:
   postgres_data:
