@@ -1,12 +1,70 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState, type CSSProperties, type RefObject } from 'react';
-import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCursor } from './js/cursor';
-import { useReveal } from './js/reveal';
 import { useLiveStats, useLiveFeed } from './js/live';
+
+const REVEAL_THRESHOLD = 120;
+
+function useScrollReveal() {
+  const refs = useRef<Record<string, HTMLElement | null>>({
+    proof: null, how: null, features: null, demo: null, leaderboard: null, final: null,
+  });
+  const [visible, setVisible] = useState<Record<string, boolean>>({
+    proof: false, how: false, features: false, demo: false, leaderboard: false, final: false,
+  });
+  const raf = useRef<number>(0);
+
+  const check = useCallback(() => {
+    const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
+    const trigger = vh - REVEAL_THRESHOLD;
+    setVisible((prev) => {
+      let next: Record<string, boolean> | null = null;
+      for (const key of Object.keys(refs.current)) {
+        const el = refs.current[key as keyof typeof refs.current];
+        if (!el) continue;
+        const top = el.getBoundingClientRect().top;
+        if (top <= trigger && !prev[key]) {
+          if (!next) next = { ...prev };
+          next[key] = true;
+        }
+      }
+      return next || prev;
+    });
+  }, []);
+
+  useEffect(() => {
+    const run = () => {
+      raf.current = 0;
+      check();
+    };
+    const onScroll = () => {
+      if (raf.current) return;
+      raf.current = requestAnimationFrame(run);
+    };
+    check();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', run);
+    const t = setTimeout(check, 200);
+    const t2 = setTimeout(check, 600);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', run);
+      clearTimeout(t);
+      clearTimeout(t2);
+      if (raf.current) cancelAnimationFrame(raf.current);
+    };
+  }, [check]);
+
+  const setRef = useCallback((key: string) => (el: HTMLElement | null) => {
+    refs.current[key] = el;
+    if (el) requestAnimationFrame(check);
+  }, [check]);
+
+  return { visible, setRef };
+}
 
 const NAV_ITEMS = [
   { label: 'How It Works', href: '#how' },
@@ -36,12 +94,12 @@ const STEPS = [
 ];
 
 const FEATURES = [
-  { icon: '⚡', title: 'Live 1v1 Battles', desc: 'Race to first accepted solution.' },
-  { icon: '🧪', title: 'Hidden Test Judge', desc: 'No shortcut passes. Only robust code.' },
-  { icon: '🎯', title: 'Skill Matchmaking', desc: 'Opponents close enough to challenge.' },
-  { icon: '📈', title: 'ELO Progression', desc: 'Every match shifts your rank story.' },
-  { icon: '🐳', title: 'Sandbox Execution', desc: 'Isolated runs inside Docker containers.' },
-  { icon: '🏁', title: 'Seasonal Ladders', desc: 'Fresh climbs, badges, and bragging rights.' },
+  { icon: '⚡', title: 'Live 1v1 Battles', desc: 'Race to first accepted solution.', code: 'DUEL', signal: 'Latency lock < 45ms' },
+  { icon: '🧪', title: 'Hidden Test Judge', desc: 'No shortcut passes. Only robust code.', code: 'VERIFY', signal: 'Private test gates + anti-cheat' },
+  { icon: '🎯', title: 'Skill Matchmaking', desc: 'Opponents close enough to challenge.', code: 'PAIR', signal: 'Adaptive ELO skill bands' },
+  { icon: '📈', title: 'ELO Progression', desc: 'Every match shifts your rank story.', code: 'RANK', signal: 'Live rating deltas after each round' },
+  { icon: '🐳', title: 'Sandbox Execution', desc: 'Isolated runs inside Docker containers.', code: 'SANDBOX', signal: 'Containerized runtime per submit' },
+  { icon: '🏁', title: 'Seasonal Ladders', desc: 'Fresh climbs, badges, and bragging rights.', code: 'SEASON', signal: 'Resets, rewards, and title races' },
 ];
 
 const TESTIMONIALS = [
@@ -52,26 +110,15 @@ const TESTIMONIALS = [
 
 export default function Home() {
   const { user, loading } = useAuth();
-  const router = useRouter();
   const [heroReady, setHeroReady] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
+  const [activeFeature, setActiveFeature] = useState(0);
 
   const { onlineNow, matchesToday, avgQueueMs } = useLiveStats();
   const activityFeed = useLiveFeed();
 
   useCursor();
-
-  const [heroRef, heroVisible] = useReveal() as [RefObject<HTMLElement>, boolean];
-  const [proofRef, proofVisible] = useReveal() as [RefObject<HTMLElement>, boolean];
-  const [howRef, howVisible] = useReveal() as [RefObject<HTMLElement>, boolean];
-  const [featuresRef, featuresVisible] = useReveal() as [RefObject<HTMLElement>, boolean];
-  const [demoRef, demoVisible] = useReveal() as [RefObject<HTMLElement>, boolean];
-  const [leaderRef, leaderVisible] = useReveal() as [RefObject<HTMLElement>, boolean];
-  const [finalRef, finalVisible] = useReveal() as [RefObject<HTMLElement>, boolean];
-
-  useEffect(() => {
-    if (!loading && user) router.push('/dashboard');
-  }, [loading, user, router]);
+  const { visible: reveal, setRef: setRevealRef } = useScrollReveal();
 
   useEffect(() => {
     const t = setTimeout(() => setHeroReady(true), 120);
@@ -79,12 +126,20 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (!demoVisible) return;
+    if (!reveal.demo) return;
     const ticker = setInterval(() => {
       setActiveStep((prev) => (prev + 1) % STEPS.length);
     }, 2100);
     return () => clearInterval(ticker);
-  }, [demoVisible]);
+  }, [reveal.demo]);
+
+  useEffect(() => {
+    if (!reveal.features) return;
+    const ticker = setInterval(() => {
+      setActiveFeature((prev) => (prev + 1) % FEATURES.length);
+    }, 2300);
+    return () => clearInterval(ticker);
+  }, [reveal.features]);
 
   const statItems = useMemo(
     () => [
@@ -116,32 +171,54 @@ export default function Home() {
             </a>
           ))}
         </div>
-        <Link href="/register" className="btn btn-primary cursor-hover">
-          Start Climbing
+        <Link href={user ? '/dashboard' : '/register'} className="btn btn-primary cursor-hover">
+          {user ? 'Open Dashboard' : 'Start Climbing'}
         </Link>
       </nav>
 
       <main className="landing-main">
-        <section id="hero" ref={heroRef} className={`hero reveal ${heroVisible ? 'in' : ''}`}>
-          <p className={`hero-kicker reveal-stagger ${heroReady ? 'in' : ''}`} style={{ '--delay': '0s' } as CSSProperties}>
-            LIVE CODING DUELS
-          </p>
-          <h1 className={`hero-title reveal-stagger ${heroReady ? 'in' : ''}`} style={{ '--delay': '0.1s' } as CSSProperties}>
-            Outcode someone in real time.
-          </h1>
-          <p className={`hero-subtitle reveal-stagger ${heroReady ? 'in' : ''}`} style={{ '--delay': '0.2s' } as CSSProperties}>
-            Competitive programming arena for developers and students who want pressure, speed, and real skill growth.
-          </p>
-          <div className={`hero-actions reveal-stagger ${heroReady ? 'in' : ''}`} style={{ '--delay': '0.3s' } as CSSProperties}>
-            <Link href="/register" className="btn btn-primary cursor-hover">
-              Enter Arena
-            </Link>
-            <Link href="/login" className="btn btn-secondary cursor-hover">
-              Watch Live Match
-            </Link>
+        <section id="hero" className="hero">
+          <div className="hero-copy">
+            <p className={`hero-kicker reveal-stagger ${heroReady ? 'in' : ''}`} style={{ '--delay': '0s' } as CSSProperties}>
+              LIVE CODING DUELS
+            </p>
+            <h1 className={`hero-title reveal-stagger ${heroReady ? 'in' : ''}`} style={{ '--delay': '0.1s' } as CSSProperties}>
+              Outcode someone in real time.
+            </h1>
+            <p className={`hero-subtitle reveal-stagger ${heroReady ? 'in' : ''}`} style={{ '--delay': '0.2s' } as CSSProperties}>
+              Competitive programming arena for developers and students who want pressure, speed, and real skill growth.
+            </p>
+            <div className={`hero-actions reveal-stagger ${heroReady ? 'in' : ''}`} style={{ '--delay': '0.3s' } as CSSProperties}>
+              <Link href={user ? '/dashboard' : '/register'} className="btn btn-primary cursor-hover">
+                {user ? 'Go To Dashboard' : 'Enter Arena'}
+              </Link>
+              <Link href="/login" className="btn btn-secondary cursor-hover">
+                Watch Live Match
+              </Link>
+            </div>
+            <div className={`hero-signal reveal-stagger ${heroReady ? 'in' : ''}`} style={{ '--delay': '0.4s' } as CSSProperties}>
+              <span>QUEUE ~ {avgQueueMs}ms</span>
+              <span>ONLINE {onlineNow.toLocaleString()}</span>
+              <span>MATCHES {matchesToday.toLocaleString()}</span>
+            </div>
           </div>
 
-          <div className={`hero-visual reveal-stagger ${heroReady ? 'in' : ''}`} style={{ '--delay': '0.4s' } as CSSProperties}>
+          <div className={`hero-visual reveal-stagger ${heroReady ? 'in' : ''}`} style={{ '--delay': '0.2s' } as CSSProperties}>
+            <div className="arena-grid" />
+            <div className="arena-beam beam-1" />
+            <div className="arena-beam beam-2" />
+            <div className="arena-node node-1" />
+            <div className="arena-node node-2" />
+            <div className="arena-node node-3" />
+            <div className="core-ring ring-1" />
+            <div className="core-ring ring-2" />
+            <div className="core-ring ring-3" />
+            <div className="scan-cone" />
+            <div className="orbit orbit-a"><span /></div>
+            <div className="orbit orbit-b"><span /></div>
+            <div className="data-rain" aria-hidden>
+              <span>1010110</span><span>0110011</span><span>1101010</span><span>0010111</span>
+            </div>
             <div className="duel-line duel-a" />
             <div className="duel-line duel-b" />
             <div className="duel-card left">
@@ -161,7 +238,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section ref={proofRef} className={`proof-bar reveal ${proofVisible ? 'in' : ''}`}>
+        <section ref={setRevealRef('proof')} className={`proof-bar reveal ${reveal.proof ? 'in' : ''}`}>
           <div className="proof-track">
             {[...statItems, ...statItems].map((item, idx) => (
               <span key={`${item}-${idx}`}>{item}</span>
@@ -169,7 +246,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="how" ref={howRef} className={`how reveal ${howVisible ? 'in' : ''}`}>
+        <section id="how" ref={setRevealRef('how')} className={`how reveal ${reveal.how ? 'in' : ''}`}>
           <header className="section-head">
             <p>HOW IT WORKS</p>
             <h2>Three beats. One obsession: better under pressure.</h2>
@@ -186,12 +263,57 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="features" ref={featuresRef} className={`features reveal ${featuresVisible ? 'in' : ''}`}>
+        <section id="features" ref={setRevealRef('features')} className={`features reveal ${reveal.features ? 'in' : ''}`}>
           <header className="section-head">
             <p>FEATURES</p>
             <h2>Built for coders who hate easy mode.</h2>
           </header>
-          <div className="feature-grid">
+          <div className="feature-arena">
+            <div className="feature-stage" aria-hidden>
+              <div className="stage-ring stage-ring-a" />
+              <div className="stage-ring stage-ring-b" />
+              <div className="stage-ring stage-ring-c" />
+              <div className="stage-sweep" />
+              {FEATURES.map((feature, idx) => (
+                <div
+                  key={feature.title}
+                  className={`feature-orbit-node ${activeFeature === idx ? 'active' : ''}`}
+                  style={{ '--index': idx, '--count': FEATURES.length } as CSSProperties}
+                >
+                  <span>{feature.icon}</span>
+                </div>
+              ))}
+              <div className="stage-core">
+                <small>{FEATURES[activeFeature].code}</small>
+                <strong>{FEATURES[activeFeature].title}</strong>
+                <em>{FEATURES[activeFeature].signal}</em>
+              </div>
+            </div>
+
+            <div className="feature-rail">
+              {FEATURES.map((feature, idx) => (
+                <button
+                  key={feature.title}
+                  type="button"
+                  className={`feature-node cursor-hover ${activeFeature === idx ? 'active' : ''}`}
+                  onMouseEnter={() => setActiveFeature(idx)}
+                  onFocus={() => setActiveFeature(idx)}
+                >
+                  <span className="feature-icon">{feature.icon}</span>
+                  <span className="feature-copy">
+                    <b>{feature.title}</b>
+                    <i>{feature.desc}</i>
+                  </span>
+                  <span className="feature-code">{feature.code}</span>
+                </button>
+              ))}
+              <div className="feature-progress">
+                <div className="feature-progress-fill" style={{ width: `${((activeFeature + 1) / FEATURES.length) * 100}%` }} />
+              </div>
+              <p className="feature-signal">{FEATURES[activeFeature].signal}</p>
+            </div>
+          </div>
+          <div className="feature-grid" aria-hidden>
             {FEATURES.map((feature) => (
               <article key={feature.title} className="feature-card cursor-hover">
                 <div className="feature-icon">{feature.icon}</div>
@@ -202,7 +324,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section ref={demoRef} className={`demo reveal ${demoVisible ? 'in' : ''}`}>
+        <section ref={setRevealRef('demo')} className={`demo reveal ${reveal.demo ? 'in' : ''}`}>
           <header className="section-head">
             <p>LIVE PREVIEW</p>
             <h2>Feel the match flow before you sign up.</h2>
@@ -231,7 +353,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="leaderboard" ref={leaderRef} className={`leaderboard reveal ${leaderVisible ? 'in' : ''}`}>
+        <section id="leaderboard" ref={setRevealRef('leaderboard')} className={`leaderboard reveal ${reveal.leaderboard ? 'in' : ''}`}>
           <header className="section-head">
             <p>ARENA FEED</p>
             <h2>People are climbing right now.</h2>
@@ -259,7 +381,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section ref={finalRef} className={`final-cta reveal ${finalVisible ? 'in' : ''}`}>
+        <section ref={setRevealRef('final')} className={`final-cta reveal ${reveal.final ? 'in' : ''}`}>
           <p>DON&apos;T JUST PRACTICE. PERFORM.</p>
           <h2>{onlineNow.toLocaleString()} developers are in the arena right now.</h2>
           <Link href="/register" className="btn btn-primary cursor-hover">

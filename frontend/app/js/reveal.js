@@ -1,56 +1,63 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 
+/**
+ * Robust scroll reveal: IntersectionObserver + throttled scroll fallback.
+ * Triggers when element enters viewport (80px lead for smooth UX).
+ */
 export function useReveal() {
   const ref = useRef(null);
   const [visible, setVisible] = useState(false);
   const fired = useRef(false);
 
-  useEffect(() => {
-    const node = ref.current;
-    if (!node || fired.current) return;
-
-    const reveal = () => {
-      if (fired.current) return;
-      fired.current = true;
-      setVisible(true);
-    };
-
-    const inViewport = () => {
-      const box = node.getBoundingClientRect();
-      return box.top < window.innerHeight - 48 && box.bottom > 0;
-    };
-
-    if (inViewport()) {
-      reveal();
-      return;
-    }
-
-    const cleanup = [];
-
-    if ('IntersectionObserver' in window) {
-      const observer = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting) {
-            reveal();
-            observer.disconnect();
-          }
-        },
-        { threshold: 0, rootMargin: '0px 0px -48px 0px' }
-      );
-      observer.observe(node);
-      cleanup.push(() => observer.disconnect());
-    }
-
-    const onScroll = () => {
-      if (inViewport()) reveal();
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    cleanup.push(() => window.removeEventListener('scroll', onScroll));
-
-    return () => cleanup.forEach((fn) => fn());
+  const reveal = useCallback(() => {
+    if (fired.current) return;
+    fired.current = true;
+    setVisible(true);
   }, []);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const check = () => {
+      const rect = el.getBoundingClientRect();
+      const vh = window.innerHeight;
+      if (rect.top < vh - 80 && rect.bottom > -50) reveal();
+    };
+
+    check();
+    if (fired.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) if (e.isIntersecting) reveal();
+      },
+      { root: null, rootMargin: '100px 0px 100px 0px', threshold: 0 }
+    );
+    observer.observe(el);
+
+    let raf = 0;
+    const onScroll = () => {
+      if (raf || fired.current) return;
+      raf = requestAnimationFrame(() => {
+        check();
+        raf = 0;
+      });
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    const t = setTimeout(check, 150);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('scroll', onScroll);
+      clearTimeout(t);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [reveal]);
 
   return [ref, visible];
 }
