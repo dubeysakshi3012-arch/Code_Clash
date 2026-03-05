@@ -1,5 +1,39 @@
 # CodeClash MVP - Implementation Summary
 
+---
+
+## What is CodeClash?
+
+**In simple words:** CodeClash is a coding platform where you prove your skills in an **onboarding assessment**, get an **ELO rating**, then **find a live 1v1 match** with another player. Both of you get the same coding problem; you write code in the browser, run it against test cases, and submit. The first correct (or higher-scoring) solution wins and ELO goes up or down. So it’s **assessment-based onboarding + skill rating + real-time head-to-head coding matches**.
+
+**Current product in points:**
+- **Sign up / log in** with email and password; JWT tokens for staying logged in.
+- **Assessment:** Start an assessment, pick a language (e.g. Python, Java, C++), answer questions in sections (A, B, C), run your code against sample/hidden tests, skip if needed, complete the assessment and get an **initial ELO**.
+- **Dashboard:** See your ELO and language; **Find Match** (real-time matchmaking by language) or **Start Assessment** (for new users or to re-assess).
+- **Live match:** Socket-based matchmaking finds an opponent; you’re taken to a **match room** with the same question, a **code editor**, Run tests, and Submit; first correct/higher score wins; **ELO updates** after the match.
+- **Code execution:** Your code runs in **Docker** (safe, isolated); backend has a judge that runs test cases and returns pass/fail and score.
+- **Questions:** Stored in DB; for matches, **AI (Gemini/Groq)** can generate new questions, or the system falls back to the question bank.
+- **Anti-cheat:** Assessment can log violations (e.g. tab switch, timer issues) for fairness.
+- **Tech:** Backend (FastAPI, PostgreSQL, Redis, Celery for judge tasks), Socket server (Node.js) for matchmaking, Frontend (Next.js) with auth and protected routes.
+
+**Features we can add next (in simple language):**
+- **Leaderboards** – global and by language so you can see who’s on top.
+- **Profile & match history** – your past matches, wins/losses, and basic stats.
+- **Friends & private matches** – add friends and challenge them to a match.
+- **Better code editor** – themes, shortcuts, and maybe basic autocomplete.
+- **Chat or quick reactions** in the match room so you can react to the opponent.
+- **Replays / solution viewer** – after a match, see the winning solution (with consent).
+- **Notifications** – “Match found”, “Your turn”, “Challenge accepted” (in-app or email).
+- **More languages** in the judge (e.g. JavaScript, Go) so more people can play.
+- **Email verification & password reset** so accounts are safer and recoverable.
+- **Login with Google/GitHub** (OAuth) for quicker sign-up.
+- **Daily challenge or tournaments** – one problem per day or scheduled events with prizes.
+- **Mobile-friendly or PWA** so you can play on phones.
+- **Smarter matchmaking** – match by ELO range and language so games are fairer.
+- **Difficulty tiers** – easy/medium/hard problems and filters by ELO.
+
+---
+
 ## ✅ Completed Implementation
 
 ### Backend (FastAPI)

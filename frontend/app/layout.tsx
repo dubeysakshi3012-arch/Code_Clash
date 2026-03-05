@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Black_Ops_One, VT323, Barlow_Condensed } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 
@@ -13,9 +14,27 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const blackOpsOne = Black_Ops_One({
+  variable: "--font-arcade",
+  weight: "400",
+  subsets: ["latin"],
+});
+
+const vt323 = VT323({
+  variable: "--font-terminal",
+  weight: "400",
+  subsets: ["latin"],
+});
+
+const barlowCondensed = Barlow_Condensed({
+  variable: "--font-condensed",
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
-  title: "CodeClash - Assessment Platform",
-  description: "Assessment-based onboarding with ELO progression",
+  title: "CodeClash - Real-Time Competitive Coding",
+  description: "War room coding. Assessment-based ELO. Live 1v1 matches. Code or be coded.",
 };
 
 export default function RootLayout({
@@ -26,7 +45,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${blackOpsOne.variable} ${vt323.variable} ${barlowCondensed.variable} antialiased`}
       >
         <AuthProvider>{children}</AuthProvider>
       </body>

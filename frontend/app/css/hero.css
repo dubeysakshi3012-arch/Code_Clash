@@ -1,0 +1,130 @@
+.hero {
+  min-height: 95vh;
+  padding: 4.3rem 0 3rem;
+  display: grid;
+  align-content: center;
+  gap: 1rem;
+}
+
+.hero-kicker {
+  margin: 0;
+  color: var(--brand);
+  letter-spacing: 0.22em;
+  font-family: var(--font-terminal), monospace;
+  font-size: 0.75rem;
+}
+
+.hero-title {
+  margin: 0;
+  max-width: 14ch;
+  font-family: var(--font-arcade), sans-serif;
+  font-size: clamp(2rem, 9vw, 4.9rem);
+  line-height: 1.02;
+}
+
+.hero-subtitle {
+  margin: 0;
+  max-width: 45ch;
+  color: var(--ink-dim);
+  font-size: 1.02rem;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+
+.hero-visual {
+  margin-top: var(--space-3);
+  position: relative;
+  min-height: 340px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: linear-gradient(160deg, rgba(255, 90, 31, 0.08), rgba(255, 255, 255, 0.02));
+  overflow: hidden;
+}
+
+.hero-visual::before {
+  content: '';
+  position: absolute;
+  inset: -40% -20%;
+  background: radial-gradient(circle at center, rgba(255, 90, 31, 0.26), transparent 60%);
+  animation: ringPulse 6s ease-in-out infinite;
+}
+
+.duel-line {
+  position: absolute;
+  height: 1px;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to right, transparent, var(--brand), transparent);
+}
+
+.duel-a { top: 34%; }
+.duel-b { top: 67%; }
+
+.duel-card {
+  position: absolute;
+  width: min(250px, 45vw);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #0a0a0af0;
+  padding: 0.95rem;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.duel-card.left { left: 1rem; top: 1.2rem; }
+.duel-card.right { right: 1rem; bottom: 1.2rem; }
+
+.duel-card span {
+  color: var(--brand);
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  font-family: var(--font-terminal), monospace;
+}
+
+.duel-card strong {
+  font-size: 1rem;
+  font-family: var(--font-arcade), sans-serif;
+}
+
+.duel-card em {
+  font-style: normal;
+  color: var(--ink-dim);
+  font-size: 0.85rem;
+}
+
+.duel-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  width: 120px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  background: rgba(5, 5, 5, 0.88);
+  animation: pulseGlow 2.3s ease-in-out infinite;
+}
+
+.duel-center b {
+  font-family: var(--font-arcade), sans-serif;
+  color: var(--accent);
+}
+
+.duel-center small {
+  font-family: var(--font-terminal), monospace;
+  letter-spacing: 0.15em;
+  color: var(--ink-dim);
+}
+
+@media (min-width: 900px) {
+  .hero {
+    padding-top: 5.4rem;
+  }
+}
